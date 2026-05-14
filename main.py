@@ -26,7 +26,13 @@ def parse_email_to_event(email_text: str) -> CalendarEvent:
         messages=[
             {
                 "role": "system", 
-                "content": "You are a precise data extraction algorithm. Extract calendar event details from the provided email. If the email does not contain a meeting request, set action_required to false."
+                "content": (
+                    "You are a precise data extraction algorithm. Extract calendar event details "
+                    "from the provided email into a flat JSON object. "
+                    "CRITICAL INSTRUCTIONS: "
+                    "1. If the email does not contain a meeting request, set action_required to false and leave other fields null. "
+                    "2. Do NOT nest the output inside an 'event_details' key. Use the exact keys provided in the schema at the root level."
+                )
             },
             {
                 "role": "user", 
