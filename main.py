@@ -1,24 +1,28 @@
 import os
 import json
 from dotenv import load_dotenv
-from openai import OpenAI
+from ollama import Client
 from schemas import CalendarEvent
 
 # Load environment variables
 load_dotenv()
 
-# Initialize the client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize the Ollama client pointing to the Cloud API
+client = Client(
+    host='https://ollama.com',
+    headers={'Authorization': f"Bearer {os.getenv('OLLAMA_API_KEY')}"}
+)
 
 def parse_email_to_event(email_text: str) -> CalendarEvent:
     """
-    Ingests raw email text and returns a strictly typed CalendarEvent object.
+    Ingests raw email text and returns a strictly typed CalendarEvent object
+    using Ollama Cloud models.
     """
-    print("Extracting data from email...\n")
+    print("Extracting data from email via Ollama Cloud...\n")
     
-    # We use the .parse method which guarantees the output matches our Pydantic model
-    response = client.beta.chat.completions.parse(
-        model="gpt-4o-mini", # A fast, cost-effective model for data extraction
+    # We pass the Pydantic JSON schema to the format parameter to force structured output
+    response = client.chat(
+        model="qwen3:480b-cloud", 
         messages=[
             {
                 "role": "system", 
@@ -29,11 +33,13 @@ def parse_email_to_event(email_text: str) -> CalendarEvent:
                 "content": email_text
             }
         ],
-        response_format=CalendarEvent,
+        format=CalendarEvent.model_json_schema(),
     )
     
-    # Return the parsed Pydantic object
-    return response.choices[0].message.parsed
+    # Ollama returns a JSON string that adheres to our schema.
+    # We parse it and unpack it into our Pydantic class.
+    parsed_json = json.loads(response['message']['content'])
+    return CalendarEvent(**parsed_json)
 
 if __name__ == "__main__":
     # Mock Email Data
