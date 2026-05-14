@@ -36,10 +36,32 @@ def parse_email_to_event(email_text: str) -> CalendarEvent:
         format=CalendarEvent.model_json_schema(),
     )
     
-    # Ollama returns a JSON string that adheres to our schema.
-    # We parse it and unpack it into our Pydantic class.
-    parsed_json = json.loads(response['message']['content'])
-    return CalendarEvent(**parsed_json)
+    # 1. Capture the raw text output
+    raw_content = response['message']['content'].strip()
+    
+    # 2. Check for empty responses (often caused by auth errors or API timeouts)
+    if not raw_content:
+        raise ValueError("The model returned an empty response. Double-check your API key in .env.")
+        
+    # 3. Sanitize the output: Strip markdown code blocks if the model included them
+    if raw_content.startswith("```json"):
+        raw_content = raw_content[7:] # Remove ```json
+    elif raw_content.startswith("```"):
+        raw_content = raw_content[3:] # Remove generic ```
+        
+    if raw_content.endswith("```"):
+        raw_content = raw_content[:-3] # Remove trailing ```
+        
+    raw_content = raw_content.strip() # Clean up any lingering whitespace
+    
+    # 4. Safely attempt to parse
+    try:
+        parsed_json = json.loads(raw_content)
+        return CalendarEvent(**parsed_json)
+    except json.JSONDecodeError as e:
+        # If it STILL fails, print exactly what the model gave us so we can debug
+        print(f"\n[DEBUG] RAW MODEL OUTPUT THAT FAILED TO PARSE:\n{raw_content}\n")
+        raise e
 
 if __name__ == "__main__":
     # Mock Email Data
