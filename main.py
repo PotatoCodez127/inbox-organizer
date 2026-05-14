@@ -22,7 +22,7 @@ def parse_email_to_event(email_text: str) -> CalendarEvent:
     
     # We pass the Pydantic JSON schema to the format parameter to force structured output
     response = client.chat(
-        model="qwen3:480b-cloud", 
+        model="gemma4:31b-cloud", 
         messages=[
             {
                 "role": "system", 
